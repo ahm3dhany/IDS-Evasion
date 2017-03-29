@@ -11,3 +11,15 @@ Setting module options, checking if the target is vulnerable and finally running
 Checking Snort:
 ![powershell_snort_detecting_elastic_rce](screenshots/ElasticSearch/powershell_snort_detecting_elastic_rce.png)
 As we see, snort identified the attack successfully.
+
+### FTP Authentication Scanner ([CVE-1999-0502](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0502)):
+![powershell_no_result](screenshots/FTP_login/powershell_no_result.png)
+![ftp_reconnaissance](screenshots/FTP_login/ftp_reconnaissance.png)
+![unsuccess_login_rule](screenshots/FTP_login/unsuccess_login_rule.png)
+![bruteforce_rule](screenshots/FTP_login/bruteforce_rule.png)
+![metasploit_set_and_exploit](screenshots/FTP_login/metasploit_set_and_exploit.png)
+![awk_no_of_lines](screenshots/FTP_login/awk_no_of_lines.png)
+![powershell_snort_detect_ftp](screenshots/FTP_login/powershell_snort_detect_ftp.png)
+![hydra](screenshots/FTP_login/hydra.png)
+![powershell_snort_detect_hydra](screenshots/FTP_login/powershell_snort_detect_hydra.png)
+
