@@ -67,25 +67,26 @@ Given that we have 20 usernames in *PASS_FILE*:
 
 ![awk_no_of_lines](screenshots/FTP_login/awk_no_of_lines.png)
 
-.. Then we will expect an alert from *rule #1* for every unsuccessful login attempt (i.e.19 alerts) and an alert from rule #2 for every 5 unsuccessful login attempts (i.e. 3 alerts because INTEGER_DIVISION(19/5)=3) occur within the determined threshold (i.e. 5 minutes):
+.. Then we will expect an alert from *rule #1* for every unsuccessful login attempt (i.e.19 alerts) and an alert from *rule #2* for every 5 unsuccessful login attempts (i.e. 3 alerts because INTEGER_DIVISION(19/5)=3) occur within the determined threshold (i.e. 5 minutes):
 
 ![powershell_snort_detect_ftp](screenshots/FTP_login/powershell_snort_detect_ftp.png)
 
-Snort generates the same alerts if we used hydra:
+Snort generates the same alerts if we used Hydra:
 
 ![hydra](screenshots/FTP_login/hydra.png)
 
 ![powershell_snort_detect_hydra](screenshots/FTP_login/powershell_snort_detect_hydra.png)
 
-Notice that if we tried the same method with ssh_login module (i.e. write a rule to detect unsuccessful SSH login attempts), it will not work. The reason is that FTP sends the packets in plain text while the packets sent by SSH are encrypted (except for first few packets until the two parties agreed to the key as Diffie–Hellman key exchange algorithm) .
-Using Wireshark to examine packets sent from the target FTP service (using "ip.dst==192.168.1.14/32 and ip.src==192.168.1.143/32 and tcp.port eq 21" filter to narrow our search):
+Notice that if we tried the same method with ssh_login module (i.e. write a rule to detect unsuccessful SSH login attempts), it will not work. The reason is that FTP sends the packets in *plain text* while the packets sent by SSH are *encrypted* (except for first few packets until the two parties agreed to the key as *Diffie–Hellman* key exchange algorithm).
+Using Wireshark to examine packets sent from the target FTP service (using `ip.dst==192.168.1.14/32 and ip.src==192.168.1.143/32 and tcp.port eq 21` *filter* to narrow our search):
 
 ![ftp](screenshots/FTP_login/ftp.png)
 ![ftp_331](screenshots/FTP_login/ftp_331.png)
 ![ftp_530](screenshots/FTP_login/ftp_530.png)
 
-Note that all the packets are in clear text.
-Using Wireshark to examine packets sent from The target SSH service (using "ip.dst==192.168.1.14/32 and ip.src==192.168.1.143/32 and tcp.port eq 22" filter to narrow our search):
+Note that all the packets are in *clear text*.
+
+Using Wireshark to examine packets sent from The target SSH service (using `ip.dst==192.168.1.14/32 and ip.src==192.168.1.143/32 and tcp.port eq 22` *filter* to narrow our search):
 
 ![ssh](screenshots/FTP_login/ssh.png)
 ![ssh_D.H.](screenshots/FTP_login/ssh_D.H.png)
@@ -99,7 +100,7 @@ We'll use "auxiliary/scanner/ssh/ssh_login" module to exploit this vulnerability
 
 ![powershell_search_cve](screenshots/SSH_login/powershell_search_cve.png)
 
-Now the important piece in our rule is (content:"SSH-"; depth:4;).. here "content" keyword makes snort look for "SSH-" string among the packets.. the "depth" keyword is a modifier to the "content".. simply, it tells snort how far into a packet it should search for the "SSH-" string.. in our case we are looking for "SSH-" within the first 4 bytes of the packet:
+Now the important piece in our rule is `content:"SSH-"; depth:4;`.. here "*content*" keyword makes snort look for "SSH-" string among the packets.. the "*depth*" keyword is a modifier to the "*content*".. simply, it tells snort how far into a packet it should search for the "SSH-" string.. in our case we are looking for "SSH-" within the first 4 bytes of the packet:
 
 ![wireshark_ssh_packet](screenshots/SSH_login/wireshark_ssh_packet.png)
 
@@ -107,8 +108,9 @@ Setting module options & Run it.. it found one successful trial:
 
 ![metasploit_set&run](screenshots/SSH_login/metasploit_set&run.png)
 
-But when we check snort there is no alert. After examining the issue, I found that snort configuration file (i.e. snort.conf) didn’t include the file which contains our rule (i.e. indicator-scan.rules). So we've to include it by putting "include $RULE_PATH\indicator-scan.rules" in snort configuration file.
-Now if we run the module again, snort can detect the attack successfully:
+But when we check snort there is no alert. After examining the issue, I found that snort configuration file (i.e. snort.conf) didn’t include the file which contains our rule (i.e. indicator-scan.rules). So we've to include it by putting `include $RULE_PATH\indicator-scan.rules` in snort configuration file.
+
+Now if we run the module again, Snort can detect the attack successfully:
 
 ![snort_detect_ssh_bf](screenshots/SSH_login/snort_detect_ssh_bf.png)
 
@@ -118,18 +120,19 @@ We'll use "exploit/multi/http/jenkins_script_console" module to exploit this vul
 
 ![metasploit_set](screenshots/Jenkins/metasploit_set.png)
 
-Searching for the suitable rule among snort rules.. the vulnerability has no CVE identifier so we may search by product name (i.e. Jenkins) or we may try searching by module name (i.e. Jenkins_script_console):
+Searching for the suitable rule among snort rules.. the vulnerability has no *CVE identifier* so we may search by product name (i.e. Jenkins) or we may try searching by module name (i.e. Jenkins_script_console):
 
 ![powershell_search_cve](screenshots/Jenkins/powershell_search_cve.png)
 
 .. and it looks like we found our desired rule.
+
 After running the module we gained a meterpreter successfully:
 
 ![gain_meterpreter](screenshots/Jenkins/gain_meterpreter.png)
 
-Again when we check snort there is no alert.. so first we'll go back and check our rule.. we'll change the content value to "POST /script" (in  [jenkins_script_console.rb](https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/multi/http/jenkins_script_console.rb) module there is "#{@uri.path}script" that concatenate the uri & "script".. the uri in the rule defined as "/jenkins" which is not right in our case).
-Then we'll go to snort.conf file and add our port (i.e. 8484) to HTTP_PORTS variable.
-Now if we run the module again, snort generates the alerts successfully:
+Again when we check Snort there is no alert.. so first we'll go back and check our rule.. we'll change the content value to "POST /script" (in  [jenkins_script_console.rb](https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/multi/http/jenkins_script_console.rb) module there is `"#{@uri.path}script"` that concatenate the uri & "script".. the uri in the rule defined as "/jenkins" which is not right in our case).
+Then we'll go to snort.conf file and add our port (i.e. 8484) to *HTTP_PORTS* variable.
+Now if we run the module again, Snort generates the alerts successfully:
 
 ![snort_detect_jenkins](screenshots/Jenkins/snort_detect_jenkins.png)
 
@@ -137,18 +140,20 @@ Now if we run the module again, snort generates the alerts successfully:
 
 ## **Attacks Snort could not identify**
 ### Jenkins-CI Script-Console Java Execution:
-Yes, the same vulnerability again!.. but this time we won't get caught by snort. We'll use Obfuscation (i.e. manipulating data so that the IDS signature will not match the packet that is passed but the receiving device with still interpret it properly).
+Yes, the same vulnerability again!.. but this time we won't get caught by snort. We'll use *Obfuscation* (i.e. manipulating data so that the IDS signature will not match the packet that is passed but the receiving device with still interpret it properly).
+
 We know that these two commands are identical:
 
 ![identical_rev_trav](screenshots/Jenkins_2/identical_rev_trav.png)
 
-As we see, we move down into the directory tree and then uses the “../” to get back to the original location.
-If the command is long enough, the IDS may, in the interest of saving CPU cycles, not process the entire string and miss the exploit code at the end. We'll take advantage of this concept of "relative directories" to evade snort.  
+As we see, we move down into the directory tree and then uses the `../` to get back to the original location.
+If the command is long enough, the IDS may, in the interest of saving CPU cycles, not process the entire string and miss the exploit code at the end. We'll take advantage of this concept of "*relative directories*" to evade Snort.  
+
 What is snort looking for?  Let's take a look at our rule: 
 
 ![snort_rule](screenshots/Jenkins_2/snort_rule.png)
 
-We could manipulate "POST /script" to something like "POST /down/downAgain/../../script".
+We could manipulate `"POST /script"` to something like `"POST /down/downAgain/../../script"`.
 
 ![wireshark_normal](screenshots/Jenkins_2/wireshark_normal.png)
 
