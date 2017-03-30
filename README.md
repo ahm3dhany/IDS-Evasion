@@ -130,7 +130,7 @@ After running the module we gained a meterpreter successfully:
 
 ![gain_meterpreter](screenshots/Jenkins/gain_meterpreter.png)
 
-Again when we check Snort there is no alert.. so first we'll go back and check our rule.. we'll change the content value to "POST /script" (in  [jenkins_script_console.rb](https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/multi/http/jenkins_script_console.rb) module there is `"#{@uri.path}script"` that concatenate the uri & "script".. the uri in the rule defined as "/jenkins" which is not right in our case).
+Again when we check Snort there is no alert.. so first we'll go back and check our rule.. we'll change the content value to "POST /script" (in  [jenkins_script_console.rb](https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/multi/http/jenkins_script_console.rb) module there is `"#{@uri.path}script"` that concatenate the URI & "script".. the uri in the rule defined as "/jenkins" which is not right in our case).
 Then we'll go to snort.conf file and add our port (i.e. 8484) to *HTTP_PORTS* variable.
 Now if we run the module again, Snort generates the alerts successfully:
 
@@ -161,32 +161,33 @@ We'll use the same settings as we did before except for one thing:
 
 ![fake_rel_dir](screenshots/Jenkins_2/fake_rel_dir.png)
 
-This option will insert fake relative directories into the uri.. let's run the module and do packet inspection:
+This option will insert fake relative directories into the URI.. let's run the module and do *packet inspection*:
 
 ![gain_meterpreter](screenshots/Jenkins_2/gain_meterpreter.png)
 
 ![wireshark_fake](screenshots/Jenkins_2/wireshark_fake.png)
 
-As we see, the move ups (i.e. ../) have to be equal to the move downs (e.g. /Directory).. the final expression will evaluate to the same as before (i.e. /script) but the IDS will not notice the attack at all:
+As we see, the number of the move ups (i.e. `../`) have to be *equal* to the move downs (e.g. `/Directory`).. the final expression will evaluate to the same URI as before (i.e. `/script`) but the IDS will not notice the attack at all:
 
 ![snort_not_detecting](screenshots/Jenkins_2/snort_not_detecting.png)
 
 
 ### MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service ([CVE-2015-1635](http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=cve-2015-1635)):
-We'll use "auxiliary/dos/http/ms15_034_ulonglongadd" module t o cause a denial-of-service to our target.
+We'll use "auxiliary/dos/http/ms15_034_ulonglongadd" module to cause a *denial-of-service* to our target.
+
 First, search for the rule and go enable it:
 
 ![powershell_search_cve](screenshots/DoS/powershell_search_cve.png)
 
-We will run snort a bit differently this time.. using fast alert mode instead of console alert mode.. so that in case of the target machine became down we'll not miss the generated alerts (if there are such alerts):
+We will run Snort a bit differently this time.. using *fast* alert mode instead of *console* alert mode.. so that in case of the target machine became down won't miss the generated alerts (if there are such alerts):
 
 ![powershell_run_snort](screenshots/DoS/powershell_run_snort.png)
 
-Back to metasploit, set the RHOST.. we can check if the target is vulnerable in two ways.. first using the "check" command inside the module:
+Back to metasploit, set the *RHOST*.. we can check if the target is vulnerable in two ways.. first using the `check` command inside the module:
 
 ![module_set&check](screenshots/DoS/module_set&check.png)
 
-.. second way usning telnet, and wait to see if the server responds with "Requested Header Range Not Satisfiable", then the target may be vulnerable:
+.. second way usning *telnet*, and wait to see if the server responds with "Requested Header Range Not Satisfiable", then the target may be vulnerable:
 
 ![check_telnet](screenshots/DoS/check_telnet.png)
 
@@ -202,7 +203,7 @@ Run the module:
 ![ms3_after_3](screenshots/DoS/ms3_after_3.png)
 ![ms3_after_4](screenshots/DoS/ms3_after_4.png)
 
-After the target machine is up again after reboot, we'll go to "\Snort\log" directory and check the "alert.ids" file. I found nothing so we could guess that snort didn't caught the attack.
+After the target machine is up again after reboot, we'll go to "*\Snort\log*" directory and check the "alert.ids" file. I found nothing so we could guess that snort didn't caught the attack.
 I tried to add new rules: 
 
 ![additional_2_rules](screenshots/DoS/additional_2_rules.png)
