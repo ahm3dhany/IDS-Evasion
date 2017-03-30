@@ -52,3 +52,18 @@ Setting module options & Run it.. it found one successful trial:
 But when we check snort there is no alert. After examining the issue, I found that snort configuration file (i.e. snort.conf) didn’t include the file which contains our rule (i.e. indicator-scan.rules). So we've to include it by putting "include $RULE_PATH\indicator-scan.rules" in snort configuration file.
 Now if we run the module again, snort can detect the attack successfully:
 ![snort_detect_ssh_bf](screenshots/SSH_login/snort_detect_ssh_bf.png)
+
+### Jenkins-CI Script-Console Java Execution:
+We'll use "exploit/multi/http/jenkins_script_console" module to exploit this vulnerability. This module uses the Jenkins-CI Groovy script console to execute OS commands using Java. 
+![metasploit_set](screenshots/Jenkins/metasploit_set.png)
+Searching for the suitable rule among snort rules.. the vulnerability has no CVE identifier so we may search by product name (i.e. Jenkins) or we may try searching by module name (i.e. Jenkins_script_console):
+![powershell_search_cve](screenshots/Jenkins/powershell_search_cve.png)
+.. and it looks like we found our desired rule.
+After running the module we gained a meterpreter successfully:
+![gain_meterpreter](screenshots/Jenkins/gain_meterpreter.png)
+Again when we check snort there is no alert.. so first we'll go back and check our rule.. we'll change the content value to "POST /script" (in  [jenkins_script_console.rb](https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/multi/http/jenkins_script_console.rb) module there is "#{@uri.path}script" that concatenate the uri & "script".. the uri in the rule defined as "/jenkins" which is not right in our case).
+Then we'll go to snort.conf file and add our port (i.e. 8484) to HTTP_PORTS variable.
+Now if we run the module again, snort generates the alerts successfully:
+![snort_detect_jenkins](screenshots/Jenkins/snort_detect_jenkins.png)
+
+## **Attacks Snort could not identify**
