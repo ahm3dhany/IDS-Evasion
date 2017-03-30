@@ -235,4 +235,4 @@ So I think that Fixing for sure is better when possible.. it prevents you from t
 
 ###### [C. Del Carlo, "Intrusion Detection Evasion: How an attacker get past the burglar alarm", SANS Institute InfoSec Reading Room, 2003](https://www.sans.org/reading-room/whitepapers/detection/intrusion-detection-evasion-attackers-burglar-alarm-1284).
 
-###### [D. Hammarberg, “The Best Defenses against Zero-day Exploits for Various-sized Organizations”, SANS Institute InfoSec Reading Room, September 21st 2014](https://www.sans.org/reading-room/whitepapers/bestprac/defenses-zero-day-exploits-various-sized-organizations-35562).
+###### [D. Hammarberg, “The Best Defenses against Zero-day Exploits for Various-sized Organizations”, SANS Institute InfoSec Reading Room, 2014](https://www.sans.org/reading-room/whitepapers/bestprac/defenses-zero-day-exploits-various-sized-organizations-35562).
