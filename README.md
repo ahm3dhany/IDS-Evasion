@@ -41,3 +41,14 @@ Using Wireshark to examine packets sent from The target SSH service (using "ip.d
 ![ssh_D.H.](screenshots/FTP_login/ssh_D.H.png)
 ![ssh_enc](screenshots/FTP_login/ssh_enc.png)
 So unlike FTP, we can't write a PCRE to match the packets sent from SSH in the same way we did before. But we'll see how to detect it in the next section.
+
+### OpenSSH MaxAuthTries Limit Bypass Vulnerability ([CVE-2015-5600](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-5600)):
+We'll use "auxiliary/scanner/ssh/ssh_login" module to exploit this vulnerability. First we search for our rule:
+![powershell_search_cve](screenshots/SSH_login/powershell_search_cve.png)
+Now the important piece in our rule is (content:"SSH-"; depth:4;).. here "content" keyword makes snort look for "SSH-" string among the packets.. the "depth" keyword is a modifier to the "content".. simply, it tells snort how far into a packet it should search for the "SSH-" string.. in our case we are looking for "SSH-" within the first 4 bytes of the packet:
+![wireshark_ssh_packet](screenshots/SSH_login/wireshark_ssh_packet.png)
+Setting module options & Run it.. it found one successful trial:
+![metasploit_set&run](screenshots/SSH_login/metasploit_set&run.png)
+But when we check snort there is no alert. After examining the issue, I found that snort configuration file (i.e. snort.conf) didn’t include the file which contains our rule (i.e. indicator-scan.rules). So we've to include it by putting "include $RULE_PATH\indicator-scan.rules" in snort configuration file.
+Now if we run the module again, snort can detect the attack successfully:
+![snort_detect_ssh_bf](screenshots/SSH_login/snort_detect_ssh_bf.png)
