@@ -67,3 +67,20 @@ Now if we run the module again, snort generates the alerts successfully:
 ![snort_detect_jenkins](screenshots/Jenkins/snort_detect_jenkins.png)
 
 ## **Attacks Snort could not identify**
+### Jenkins-CI Script-Console Java Execution:
+Yes, the same vulnerability again!.. but this time we won't get caught by snort. We'll use Obfuscation (i.e. manipulating data so that the IDS signature will not match the packet that is passed but the receiving device with still interpret it properly).
+We know that these two commands are identical:
+![identical_rev_trav](screenshots/Jenkins_2/identical_rev_trav.png)
+As we see, we move down into the directory tree and then uses the “../” to get back to the original location.
+If the command is long enough, the IDS may, in the interest of saving CPU cycles, not process the entire string and miss the exploit code at the end. We'll take advantage of this concept of "relative directories" to evade snort.  
+What is snort looking for?  Let's take a look at our rule: 
+![snort_rule](screenshots/Jenkins_2/snort_rule.png)
+We could manipulate "POST /script" to something like "POST /down/downAgain/../../script".
+![wireshark_normal](screenshots/Jenkins_2/wireshark_normal.png)
+We'll use the same settings as we did before except for one thing:
+![fake_rel_dir](screenshots/Jenkins_2/fake_rel_dir.png)
+This option will insert fake relative directories into the uri.. let's run the module and do packet inspection:
+![gain_meterpreter](screenshots/Jenkins_2/gain_meterpreter.png)
+![wireshark_fake](screenshots/Jenkins_2/wireshark_fake.png)
+As we see, the move ups (i.e. ../) have to be equal to the move downs (e.g. /Directory).. the final expression will evaluate to the same as before (i.e. /script) but the IDS will not notice the attack at all:
+![snort_not_detecting](screenshots/Jenkins_2/snort_not_detecting.png)
