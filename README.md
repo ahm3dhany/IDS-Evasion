@@ -84,3 +84,27 @@ This option will insert fake relative directories into the uri.. let's run the m
 ![wireshark_fake](screenshots/Jenkins_2/wireshark_fake.png)
 As we see, the move ups (i.e. ../) have to be equal to the move downs (e.g. /Directory).. the final expression will evaluate to the same as before (i.e. /script) but the IDS will not notice the attack at all:
 ![snort_not_detecting](screenshots/Jenkins_2/snort_not_detecting.png)
+
+### MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service ([CVE-2015-1635](http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=cve-2015-1635)):
+We'll use "auxiliary/dos/http/ms15_034_ulonglongadd" module t o cause a denial-of-service to our target.
+First, search for the rule and go enable it:
+![powershell_search_cve](screenshots/DoS/powershell_search_cve.png)
+We will run snort a bit differently this time.. using fast alert mode instead of console alert mode.. so that in case of the target machine became down we'll not miss the generated alerts (if there are such alerts):
+![powershell_run_snort](screenshots/DoS/powershell_run_snort.png)
+Back to metasploit, set the RHOST.. we can check if the target is vulnerable in two ways.. first using the "check" command inside the module:
+![module_set&check](screenshots/DoS/module_set&check.png)
+.. second way usning telnet, and wait to see if the server responds with "Requested Header Range Not Satisfiable", then the target may be vulnerable:
+![check_telnet](screenshots/DoS/check_telnet.png)
+Run the module:
+![ms_run](screenshots/DoS/ms_run.png)
+.. well, metsploit says us that execution completed. Now let's go see what happens to our target machine from these five consecutive screenshots:
+![ms3_before](screenshots/DoS/ms3_before.png)
+![ms3_after_1](screenshots/DoS/ms3_after_1.png)
+![ms3_after_2](screenshots/DoS/ms3_after_2.png)
+![ms3_after_3](screenshots/DoS/ms3_after_3.png)
+![ms3_after_4](screenshots/DoS/ms3_after_4.png)
+After the target machine is up again after reboot, we'll go to "\Snort\log" directory and check the "alert.ids" file. I found nothing so we could guess that snort didn't caught the attack.
+I tried to add new rules: 
+![additional_2_rules](screenshots/DoS/additional_2_rules.png)
+.. but snort still didn't detect the attack.
+Although I managed to trigger the rules with wget(i.e. wget --header "Range: bytes=1-18446744073709551615" http://192.168.1.143) , curl (i.e. curl -v 192.168.1.143/ -H "Host: test" -H "Range: bytes=0-18446744073709551615") and telnet(like how we check if the target is vulnerable before), snort didn't identify the metasploit attack.
