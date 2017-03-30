@@ -203,13 +203,14 @@ Run the module:
 ![ms3_after_3](screenshots/DoS/ms3_after_3.png)
 ![ms3_after_4](screenshots/DoS/ms3_after_4.png)
 
-After the target machine is up again after reboot, we'll go to "*\Snort\log*" directory and check the "alert.ids" file. I found nothing so we could guess that snort didn't caught the attack.
+After the target machine is up again after reboot, we'll go to "*\Snort\log*" directory and check the "*alert.ids*" file. I found nothing so we could guess that Snort didn't caught the attack.
+
 I tried to add new rules: 
 
 ![additional_2_rules](screenshots/DoS/additional_2_rules.png)
 
-.. but snort still didn't detect the attack.
-Although I managed to trigger the rules with wget(i.e. wget --header "Range: bytes=1-18446744073709551615" http://192.168.1.143) , curl (i.e. curl -v 192.168.1.143/ -H "Host: test" -H "Range: bytes=0-18446744073709551615") and telnet(like how we check if the target is vulnerable before), snort didn't identify the metasploit attack.
+.. but Snort still didn't detect the attack.
+Although I managed to trigger the rules with *wget*(i.e. `wget --header "Range: bytes=1-18446744073709551615" http://192.168.1.143`) , *curl*(i.e. `curl -v 192.168.1.143/ -H "Host: test" -H "Range: bytes=0-18446744073709551615"`) and *telnet*(like how we check if the target is vulnerable before), Snort didn't identify the metasploit attack.
 
 ---
 
@@ -218,7 +219,9 @@ Although I managed to trigger the rules with wget(i.e. wget --header "Range: byt
 Fixing is better because "pattern matching" is awful, you've to be precise to avoid false positives and sometimes being precise means that the attackers can evade your rules. 
 Also you can't be sure that IDS will detect all the novel attacks as the attackers may execute their attacks in a devious ways.. including, but not limited to obfuscation, flooding, encryption and fragmentation.
 
-There are other cases when you deploy a product that doesn't belong to you. So if a vulnerability announced (e.g. Zero-Days), sometimes product provider can't instantly create a patch for this vulnerability or guide you with workarounds to mitigate its consequences. In that case, Incident Response Engineer has to write an attack signature for this attack.
+There are other cases when you deploy a product that doesn't belong to you. So if a vulnerability announced, sometimes product provider can't instantly create a patch for this vulnerability or guide you with workarounds to mitigate its consequences. In that case, Incident Response Engineer has to write an attack signature for this attack. 
+
+Another issue to consider is Zero-Day exploits -as almost every organization is at risk for zero-day exploits-, here we don't know the exploit so we are somehow compelled to use IDSs. Protecting against these kind of exploits may require mixing signature-based technique with statistical-based and behavior-based techniques [ref.](https://www.sans.org/reading-room/whitepapers/bestprac/defenses-zero-day-exploits-various-sized-organizations-35562).
 
 Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
 
