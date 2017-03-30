@@ -187,6 +187,11 @@ Although I managed to trigger the rules with wget(i.e. wget --header "Range: byt
 
 ## **So is it easier to fix the application than to detect attacks?**
 
-Fixing is better because "pattern matching" is awful, you've to be precise to avoid false positives and sometimes being precise means that the attackers can evade your rules. Also you can't be sure that IDS will detect all the novel attacks as the attackers may execute their attacks in a devious ways. Including, but not limited to obfuscation, flooding, encryption, fragmentation.
+Fixing is better because "pattern matching" is awful, you've to be precise to avoid false positives and sometimes being precise means that the attackers can evade your rules. 
+Also you can't be sure that IDS will detect all the novel attacks as the attackers may execute their attacks in a devious ways.. including, but not limited to obfuscation, flooding, encryption and fragmentation.
+
 There are other cases when you deploy a product that doesn't belong to you. So if a vulnerability announced (e.g. Zero-Days), sometimes product provider can't instantly create a patch for this vulnerability or guide you with workarounds to mitigate its consequences. In that case, Incident Response Engineer has to write an attack signature for this attack.
-Fixing for sure is better when possible.. it prevent you from the burdens of IDSs. Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
+
+Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
+
+So I think that Fixing for sure is better when possible.. it prevents you from the burdens of IDSs.
