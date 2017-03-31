@@ -9,6 +9,7 @@
   - [FTP Authentication Scanner (CVE-1999-0502)](#ftp-authentication-scanner-cve-1999-0502)
   - [OpenSSH MaxAuthTries Limit Bypass Vulnerability (CVE-2015-5600)](#openssh-maxauthtries-limit-bypass-vulnerability-cve-2015-5600)
   - [Jenkins-CI Script-Console Java Execution](#jenkins-ci-script-console-java-execution)
+  - [Apache Struts REST Plugin With Dynamic Method Invocation Remote Code Execution (CVE-2016-3087)](#apache-struts-rest-plugin-with-dynamic-method-invocation-remote-code-execution-cve-2016-3087)
 
 - [Attacks Snort could not identify](#attacks-snort-could-not-identify)
   - [Jenkins-CI Script-Console Java Execution](#jenkins-ci-script-console-java-execution-1)

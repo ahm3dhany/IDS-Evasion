@@ -1,0 +1,18 @@
+
+
+########################################################################################################
+#                                                                                                      #
+#    Apache Struts REST Plugin With Dynamic Method Invocation Remote Code Execution (CVE-2016-3087)    #
+#                                                                                                      #
+########################################################################################################
+
+
+# default rules:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts remote code execution attempt"; flow:to_server,established; content:"|23|_memberAccess"; fast_pattern:only; http_uri; content:"new "; nocase; http_uri; pcre:"/new\s+(java|org|sun)/Ui"; metadata:policy balanced-ips drop, policy security-ips drop, service http; reference:cve,2016-3087; reference:url,struts.apache.org/docs/s2-033.html; classtype:attempted-admin; sid:39191; rev:1;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts remote code execution attempt"; flow:to_server,established; content:"|23|_memberAccess"; fast_pattern:only; http_uri; content:"@java.lang."; nocase; http_uri; metadata:policy balanced-ips drop, policy security-ips drop, service http; reference:cve,2016-3087; reference:url,struts.apache.org/docs/s2-033.html; classtype:attempted-admin; sid:39190; rev:1;)
+
+# custom rule:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts remote code execution attempt"; flow:to_server,established; content:"|25 32 33|_memberAccess"; http_raw_uri; content:"new|25 32 30|"; http_raw_uri; pcre:"/new(%20)+(java|org|sun)/Ii"; sid:777555; rev:1;)
