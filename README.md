@@ -192,6 +192,22 @@ And If we tried to run the exploit again, Snort will detect it successfully:
 
 ![snort_detect_default_rules](screenshots/Struts/snort_detect_default_rules.png)
 
+
+### ManageEngine Desktop Central 9 FileUploadServlet ConnectionId Vulnerability ([CVE-2015-8249](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-8249)):
+We'll start with searching for the rules:
+
+![powershell_search](screenshots/ManageEngine/powershell_search.png)
+
+.. uncomment these three rules and add 8020 to http_inspect_server port list in snort.conf file.
+
+Then, we'll use "exploit/windows/http/manageengine_connectionid_write" metasploit module to exploit this vulnerability:
+
+![ms_set_check_run](screenshots/ManageEngine/ms_set_check_run.png)
+
+.. and Snort detect the attack:
+
+![snort_detect_ManageEngine](screenshots/ManageEngine/snort_detect_ManageEngine.png)
+
 ---
 
 ## **Attacks Snort could not identify**
