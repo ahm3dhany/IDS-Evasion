@@ -138,6 +138,59 @@ Now if we run the module again, Snort generates the alerts successfully:
 
 ![snort_detect_jenkins](screenshots/Jenkins/snort_detect_jenkins.png)
 
+
+### Apache Struts REST Plugin With Dynamic Method Invocation Remote Code Execution ([CVE-2016-3087](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-3087)):
+First we search for our rule:
+
+![powershell_search](screenshots/Struts/powershell_search.png)
+
+found two rules, we'll go and enable them (i.e. uncomment them).
+
+To exploit this vulnerability, we'll use "exploit/multi/http/struts_dmi_rest_exec" module.
+Setting module options & checking if our target is vulnerable:
+
+![ms_set_options](screenshots/Struts/ms_set_options.png)
+
+Run the module:
+
+![ms_exploit](screenshots/Struts/ms_exploit.png)
+
+Unfortunately, when we check Snort, there is no alert generated. Before trying to solve this issue, let's inspect the sent packets with Wireshark (using `ip.src==192.168.1.14/32 and ip.dst==192.168.1.143/32 and tcp.port eq 8282` filter to narrow our search):
+
+![wireshark_inspect_memAcc_&_new](screenshots/Struts/wireshark_inspect_memAcc_&_new.png)
+
+I managed to solve the issue in two different methods:
+
+First method, I wrote a new rule to match the vulnerability based on the packet inspection I did in the previous step:
+
+![wireshark_rule_side2side](screenshots/Struts/wireshark_rule_side2side.png)
+
+Note that we are matching the raw (i.e. unnormalized) URI:
+
+![normalized_and_raw_uri](screenshots/Struts/normalized_and_raw_uri.png)
+
+.. so we are trying to match "%23" and "%20". For that we have "http_raw_uri" and "I" modifiers to restrict the search to the unnormalized URI.
+
+Now if we tried to run the exploit again, snort will detect it successfully:
+
+![snort_detect_custom_rule](screenshots/Struts/snort_detect_custom_rule.png)
+
+Second method, I made the two default rule works.. I found that if a rule is dealing with HTTP normalization, then I have to put its port (i.e. 8282) in http_inspect_server preprocessor that resides in Snort configuration file (i.e. snort.conf).
+
+(The "http_inspect" preprocesor operates on "http_inspect_server" port list. The "http_inspect" preprocessor only inspects traffic on the ports within the http_inspect_server port list. So if a rule has "http_*" keyword(s) (e.g. http_uri), then its port has to be in the http_inspect_server port list.)
+
+![http_inspect_add_port](screenshots/Struts/http_inspect_add_port.png)
+
+let's take a look on the two default rules:
+
+![default_rules](screenshots/Struts/default_rules.png)
+
+Unlike the previous custom rule, here we are trying to match the normalized URI (e.g. |23| is the Hexadecimal  for "#" ASCII character).. So here we have "http_uri" and "U" modifiers to restrict the search to the normalized URI.
+
+And If we tried to run the exploit again, Snort will detect it successfully:
+
+![snort_detect_default_rules](screenshots/Struts/snort_detect_default_rules.png)
+
 ---
 
 ## **Attacks Snort could not identify**
@@ -223,7 +276,7 @@ Also you can't be sure that IDS will detect all the novel attacks as the attacke
 
 There are other cases when you deploy a product that doesn't belong to you. So if a vulnerability announced, sometimes product provider can't instantly create a patch for this vulnerability or guide you with workarounds to mitigate its consequences. In that case, Incident Response Engineer has to write an attack signature for this attack. 
 
-Another issue to consider is Zero-Day exploits -as almost every organization is at risk for zero-day exploits-, here the vulnerability is undisclosed so we are somehow compelled to use IDSs. Protecting against these kind of exploits may require mixing signature-based technique with statistical-based and behavior-based techniques.
+Another issue to consider is Zero-Day exploits -as almost every organization is at risk for zero-day exploits-, here the vulnerability is undisclosed -you don't know what you don't know!- so we are somehow compelled to use IDSs. Protecting against these kind of exploits may require mixing signature-based technique with statistical-based and behavior-based techniques.
 
 Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
 
