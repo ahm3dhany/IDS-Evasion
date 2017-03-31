@@ -2,9 +2,66 @@
 
 ########################################################################################################
 #                                                                                                      #
+#              ElasticSearch Dynamic Script Arbitrary Java Execution (CVE-2014-3120)                   #
+#                                                                                                      #
+########################################################################################################
+
+
+# default rules:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 9200 (msg:"SERVER-OTHER ElasticSearch script remote code execution attempt"; flow:to_server,established; content:"POST"; depth:4; content:"_search"; distance:0; content:"import java."; fast_pattern:only; metadata:service http; reference:cve,2014-3120; reference:url,bouk.co/blog/elasticsearch-rce/; classtype:attempted-user; sid:33830; rev:2;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 9200 (msg:"SERVER-OTHER ElasticSearch information disclosure attempt"; flow:to_server,established; content:"POST"; depth:4; content:"_search"; distance:0; content:"script"; nocase; content:"System."; distance:0; nocase; metadata:service http; reference:cve,2014-3120; reference:url,bouk.co/blog/elasticsearch-rce/; classtype:policy-violation; sid:36256; rev:1;)
+
+
+########################################################################################################
+#                                                                                                      #
+#                           FTP Authentication Scanner (CVE-1999-0502)                                 #
+#                                                                                                      #
+########################################################################################################
+
+
+# custom rules:
+
+alert tcp $HOME_NET 21 -> $EXTERNAL_NET any (msg:"FTP Bad login"; content:"530 "; pcre:"/^530\s+User cannot log in/smi"; flow:from_server,established; classtype:unsuccessful-user; sid:9000000; rev:1;)
+
+alert tcp $HOME_NET 21 -> $EXTERNAL_NET any (msg:"FTP Potential Brute-Force attempt"; flow:from_server,established; content:"530 "; pcre:"/530\s+User cannot log in/smi"; classtype:unsuccessful-user; threshold: type threshold, track by_dst, count 5, seconds 300; sid:9000002; rev:1;)
+
+
+########################################################################################################
+#                                                                                                      #
+#               OpenSSH MaxAuthTries Limit Bypass Vulnerability (CVE-2015-5600)                        #
+#                                                                                                      #
+########################################################################################################
+
+
+# default rule:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"INDICATOR-SCAN SSH brute force login attempt"; flow:to_server,established; content:"SSH-"; depth:4; detection_filter:track by_src, count 5, seconds 60; metadata:service ssh; reference:cve,2012-6066; reference:cve,2015-5600; classtype:misc-activity; sid:19559; rev:7;)
+
+
+########################################################################################################
+#                                                                                                      #
+#                           Jenkins-CI Script-Console Java Execution                                   #
+#                                                                                                      #
+########################################################################################################
+
+
+# default rule (modified):
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"APP-DETECT Jenkins Groovy script access through script console attempt"; flow:to_server,established; content:"POST /script"; fast_pattern:only; metadata:service http; reference:url,github.com/rapid7/metasploit-framework/blob/master/modules/exploits/multi/http/jenkins_script_console.rb; reference:url,wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console; classtype:policy-violation; sid:37354; rev:1;)
+
+
+########################################################################################################
+#                                                                                                      #
 #    Apache Struts REST Plugin With Dynamic Method Invocation Remote Code Execution (CVE-2016-3087)    #
 #                                                                                                      #
 ########################################################################################################
+
+
+# custom rule:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts remote code execution attempt"; flow:to_server,established; content:"|25 32 33|_memberAccess"; http_raw_uri; content:"new|25 32 30|"; http_raw_uri; pcre:"/new(%20)+(java|org|sun)/Ii"; sid:777555; rev:1;)
 
 
 # default rules:
@@ -14,6 +71,37 @@ alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts 
 alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts remote code execution attempt"; flow:to_server,established; content:"|23|_memberAccess"; fast_pattern:only; http_uri; content:"@java.lang."; nocase; http_uri; metadata:policy balanced-ips drop, policy security-ips drop, service http; reference:cve,2016-3087; reference:url,struts.apache.org/docs/s2-033.html; classtype:attempted-admin; sid:39190; rev:1;)
 
 
-# custom rule:
+########################################################################################################
+#                                                                                                      #
+#    ManageEngine Desktop Central 9 FileUploadServlet ConnectionId Vulnerability (CVE-2015-8249)       #
+#                                                                                                      #
+########################################################################################################
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 8282 (msg:"SERVER-APACHE Apache Struts remote code execution attempt"; flow:to_server,established; content:"|25 32 33|_memberAccess"; http_raw_uri; content:"new|25 32 30|"; http_raw_uri; pcre:"/new(%20)+(java|org|sun)/Ii"; sid:777555; rev:1;)
+
+# default rules:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"SERVER-WEBAPP ManageEngine Desktop Central FileUploadServlet directory traversal attempt"; flow:to_server,established; content:"rds_file_upload"; fast_pattern:only; pcre:"/(^|&)(computerName|checkSumvalue|connectionId)=[^&]*?(\x2e|%2e){2}([\x2f\x5c]|%2f|%5c)/Pim"; metadata:policy security-ips drop, service http; reference:cve,2015-8249; reference:url,osvdb.org/show/osvdb/121816; classtype:web-application-attack; sid:34718; rev:3;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"SERVER-WEBAPP ManageEngine Desktop Central FileUploadServlet directory traversal attempt"; flow:to_server,established; content:"rds_file_upload"; fast_pattern:only; content:"name"; nocase; http_client_body; pcre:"/name\s*=\s*[\x22\x27]?(computerName|checkSumvalue|connectionId)((?!^--).)*?\x2e\x2e[\x2f\x5c]/Psim"; metadata:policy security-ips drop, service http; reference:cve,2015-8249; reference:url,osvdb.org/show/osvdb/121816; classtype:web-application-attack; sid:34717; rev:3;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"SERVER-WEBAPP ManageEngine Desktop Central FileUploadServlet directory traversal attempt"; flow:to_server,established; content:"rds_file_upload"; fast_pattern:only; content:"../"; http_uri; pcre:"/[?&](computerName|checkSumvalue|connectionId)=[^&]*?\x2e\x2e\x2f/Ui"; metadata:policy security-ips drop, service http; reference:cve,2015-8249; reference:url,osvdb.org/show/osvdb/121816; classtype:web-application-attack; sid:34716; rev:3;)
+
+
+########################################################################################################
+#                                                                                                      #
+#         MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service (CVE-2015-1635)              #
+#                                                                                                      #
+########################################################################################################
+
+
+# default rule:
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"SERVER-IIS Microsoft IIS Range header integer overflow attempt"; flow:to_server,established; content:"Range"; nocase; http_header; content:"bytes"; distance:0; nocase; http_header; content:!"|0A|"; within:12; http_header; pcre:"/^Range\s*\x3a\s*bytes\s*\x3d[^\x0a]*?\d{11}/Him"; metadata:policy security-ips drop, service http; reference:bugtraq,74013; reference:cve,2015-1635; reference:url,technet.microsoft.com/en-us/security/bulletin/ms15-034; classtype:attempted-dos; sid:34061; rev:3;)
+
+
+# custom rules:
+
+alert tcp any any <> any any (msg:"MS Windows: CVE-2015-1635"; flow:to_server,established; pcre:"/^Range:\x20bytes[^\r\n]*18446744073709551615/smi"; classtype:attempted-dos; sid:12345; rev:1;) # taken from: http://binaryhax0r.blogspot.com/2015/04/ms15-034-cve-2015-1635-snort-rule.html
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 80 (msg: " MS15-034 Range Header HTTP.sys Exploit"; content: "|0d 0a|Range: bytes="; nocase; content: "-"; within: 20 ; byte_test: 10,>,1000000000,0,relative,string,dec ; sid: 1001239;) # taken from: https://isc.sans.edu/forums/diary/MS15034+HTTPsys+IIS+DoS+And+Possible+Remote+Code+Execution+PATCH+NOW/19583
+
