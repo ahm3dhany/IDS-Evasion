@@ -14,9 +14,9 @@
 
 - [Attacks Snort could not identify](#attacks-snort-could-not-identify)
   - [Jenkins-CI Script-Console Java Execution](#jenkins-ci-script-console-java-execution-1)
-  - [MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service (CVE-2015-1635)](#ms15-034-http-protocol-stack-request-handling-denial-of-service-cve-2015-1635)
   - [ElasticSearch Dynamic Script Arbitrary Java Execution (CVE-2014-3120)](#elasticsearch-dynamic-script-arbitrary-java-execution-cve-2014-3120-1)
-
+  - [MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service (CVE-2015-1635)](#ms15-034-http-protocol-stack-request-handling-denial-of-service-cve-2015-1635)
+  
 - [Is it easier to fix the application than to detect attacks?](#so-is-it-easier-to-fix-the-application-than-to-detect-attacks)
 
 - [References](#references)
@@ -64,9 +64,17 @@ I'll write two tailored rules, one for regular unsuccessful logins:
 
 ![bruteforce_rule](screenshots/FTP_login/bruteforce_rule.png)
 
-After running the module we'll find only one successful trial:
+We'll set our module options:
 
-![metasploit_set_and_exploit](screenshots/FTP_login/metasploit_set_and_exploit.png)
+![metasploit_set](screenshots/FTP_login/metasploit_set.png)
+
+Note that "metasploitable3usernames.txt" contains the usernames I found from using "auxiliary/scanner/snmp/snmp_enumusers" module to enumerate the usernames:
+
+![usernames_enum](screenshots/FTP_login/usernames_enum.png)
+
+.. and after running the module we'll find only one successful trial:
+
+![metasploit_exploit](screenshots/FTP_login/metasploit_exploit.png)
 
 Given that we have 20 usernames in *PASS_FILE*:
 
@@ -253,15 +261,16 @@ As usual, Let's take a look at our rule:
 
 ![rule](screenshots/ElasticSearch_2/rule.png)
 
-what the default rule misses here is the "nocase" modifier to `content:"POST "`. you might argue that there is two "nocase" modifiers.. but those belongs to `content:"script"` & `content:"System."`. Here I'll quote from Snort documentaion:
+what the default rule misses here is the "nocase" modifier to `content:"POST"`. you might argue that there is two "nocase" modifiers.. but those belongs to `content:"script"` & `content:"System."`. Here I'll quote from Snort documentation:
 
 > The nocase keyword allows the rule writer to specify that the Snort should look for the specific pattern, ignoring case. nocase modifies the previous content keyword in the rule.
 
-So the "nocase" modifier affect the previous content keyword only. We'll take advantage of this mistake.. use "exploit/multi/elasticsearch/script_mvel_rce" metasploit module with the same settings -as we did before- execpt for this option:
+So the "nocase" modifier affect the previous content keyword only. We'll take advantage of this mistake.. 
+use "exploit/multi/elasticsearch/script_mvel_rce" metasploit module with the same settings -as we did before- execpt for this option:
 
 ![method_random_case](screenshots/ElasticSearch_2/method_random_case.png)
 
-.. this option will use random casing for the HTTP method (e.g. gEt or GEt).
+.. this option will use random casing for the HTTP method (i.e. gEt, GEt, GET, geT, ..etc).
 
 without this option our packet normally looks like this:
 
@@ -271,11 +280,12 @@ with this option being set, our packet may looks like these three random permuta
 
 ![3_packet_permutations_example](screenshots/ElasticSearch_2/3_packet_permutations_example.png)
 
-Now if we run the module, Snort has a probability of 0.0625 to caught us (as our method is the four-charachters method POST, and the available permutaions is 2^4).
+Now if we run the module, Snort has a probability of 0.0625 to caught us (i.e. 1/16, as our method is the four-charachters method POST so the available permutaions is 2^4).
 
 I tried to execute the module and luckily snort didn't complain about it:
 
 ![snort_no_det](screenshots/ElasticSearch_2/snort_no_det.png)
+
 
 ### MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service ([CVE-2015-1635](http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=cve-2015-1635)):
 We'll use "auxiliary/dos/http/ms15_034_ulonglongadd" module to cause a *denial-of-service* to our target.
