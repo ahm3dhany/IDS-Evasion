@@ -17,7 +17,7 @@
   - [ElasticSearch Dynamic Script Arbitrary Java Execution (CVE-2014-3120)](#elasticsearch-dynamic-script-arbitrary-java-execution-cve-2014-3120-1)
   - [MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service (CVE-2015-1635)](#ms15-034-http-protocol-stack-request-handling-denial-of-service-cve-2015-1635)
 
-- [Drowning Snort by false positives](#)
+- [Drowning Snort by false positives](#drowning-snort-by-false-positives)
   
 - [Is it easier to fix the application than to detect attacks?](#so-is-it-easier-to-fix-the-application-than-to-detect-attacks)
 
@@ -331,21 +331,6 @@ Although I managed to trigger the rules with *wget*(i.e. `wget --header "Range: 
 
 ---
 
-## **So is it easier to fix the application than to detect attacks?**
-
-Fixing is better because "pattern matching" is awful, you've to be precise to avoid false positives and sometimes being precise means that the attackers can evade your rules. 
-Also you can't be sure that IDS will detect all the novel attacks as the attackers may execute their attacks in a devious ways.. including, but not limited to obfuscation, flooding, encryption and fragmentation.
-
-There are other cases when you deploy a product that doesn't belong to you. So if a vulnerability announced, sometimes product provider can't instantly create a patch for this vulnerability or guide you with workarounds to mitigate its consequences. In that case, Incident Response Engineer has to write an attack signature for this attack. 
-
-Another issue to consider is Zero-Day exploits -as almost every organization is at risk for zero-day exploits-, here the vulnerability is undisclosed -you don't know what you don't know!- so we are somehow compelled to use IDSs. Protecting against these kind of exploits may require mixing signature-based technique with statistical-based and behavior-based techniques.
-
-Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
-
-So I think that Fixing for sure is better when possible.. it prevents you from the burdens of IDSs.
-
----
-
 ## **Drowning Snort by false positives**:
 
 In this section, our main goal is to make Snort generate a lot of false positive alarms in order to drown out legitimate alerts (i.e. true positives). Beides overwhelming security team members, you may sneak your actual attack amongst these tons of false positive alerts. Also generating such tremendous traffic may force Snort to drop some packets, so it might not see the attacks. 
@@ -417,7 +402,7 @@ what happened is that we sent packet #8610 (SYN) to our target (i.e. 192.168.1.1
 .. we'll find that after the target (i.e. 192.168.1.143) recieved the SYN packet, it'll send a broadcast packet #8611 to the network using ARP protocol.. then nothing happened as the requested IP address (i.e. 192.168.1.*222*) is not directly reachable IP address.. so the data delivery is not possible.
 
 
-### Snort rule (sid:*37526*):
+#### Snort rule (sid:*37526*):
 
   `alert udp $EXTERNAL_NET any -> $HOME_NET 123 (msg:"SERVER-OTHER NTP arbitrary pidfile and driftfile overwrite attempt"; flow:to_server; content:"pidfile"; fast_pattern:only; metadata:policy balanced-ips drop, policy max-detect-ips drop, policy security-ips drop, service ntp; reference:bugtraq,77278; reference:cve,2015-7703; reference:url,support.ntp.org/bin/view/Main/NtpBug2902; classtype:policy-violation; sid:37526; rev:2;)`
 
@@ -433,7 +418,7 @@ Snort result:
 ![snort_detect_pidfile](screenshots/False-Positives/snort_detect_pidfile.png)
 
 
-### Snort rule (sid:*30882*):
+#### Snort rule (sid:*30882*):
 
   `alert udp $EXTERNAL_NET any -> $HOME_NET 53 (msg:"MALWARE-CNC Win.Trojan.Rbrute inbound connection"; flow:to_server; dsize:4; content:"|BE BA FE CA|"; fast_pattern:only; metadata:impact_flag red, policy balanced-ips drop, policy security-ips drop; reference:url,www.virustotal.com/en/file/eec964dd018ad0c40ff3d7f3a3938350522119122a0cc9711212950fc06b14a0/analysis/; classtype:trojan-activity; sid:30882; rev:2;)`
 
@@ -446,7 +431,7 @@ Snort result:
 ![snort_detect_rbrute](screenshots/False-Positives/snort_detect_rbrute.png)
 
 
-### Snort rule (sid:*31136*):
+#### Snort rule (sid:*31136*):
 
   `alert udp $EXTERNAL_NET any -> $HOME_NET [16464,16465,16470,16471] (msg:"MALWARE-CNC Win.Trojan.ZeroAccess inbound connection"; flow:to_server; dsize:16; content:"|28 94 8D AB|"; depth:4; offset:4; metadata:impact_flag red, policy balanced-ips drop, policy connectivity-ips drop, policy security-ips drop, ruleset community; reference:url,www.virustotal.com/file/50cdd9f6c5629630c8d8a3a4fe7d929d3c6463b2f9407d9a90703047e7db7ff9/analysis/; classtype:trojan-activity; sid:31136; rev:2;)`
 
@@ -454,13 +439,19 @@ Triggering the rule with a crafted packet using Scapy:
 
 ![scapy_zeroAccess](screenshots/False-Positives/scapy_zeroAccess.png)
 
+Note that, in our rule:
+  - We've `depth:4; offset:4;`.. so Snort looks for this content (i.e. `\x28 \x94 \x8D \xAB`) after the first 4 bytes for 4 bytes only.. this explains why we've **padding** at the beginning of the payload.
+  - And we've `dsize:16;`.. so Snort looks for a packet that it's size is exactly 16.. this explains why we've **padding** at the end of the payload.
+  
+  ![padding](screenshots/False-Positives/padding.png)
+
 Snort result:
 
 ![snort_detect_zeroAccess](screenshots/False-Positives/snort_detect_zeroAccess.png)
 
-### Mixing these three rules together:
+### Combining these three packets together:
 
-our script:
+Write this script to execute send the packets our script:
 
 ```python
 #!/usr/bin/env python
@@ -489,6 +480,20 @@ send(packets, loop=1)
 
 .. this script sent 4565 packets in 10 seconds only.. in other words, Snort generated 4565 false positive alerts in this very short period.. also keep in mind that we used 3 rules only.. imagine what will happen if we used a lot of rules!.. you may sneak your actual attack while running this kind of scripts. This explains why the notion of *False Positives* is one of the biggest headaches in *Cybersecurity*.
 
+---
+
+## **So is it easier to fix the application than to detect attacks?**
+
+Fixing is better because "pattern matching" is awful, you've to be precise to avoid false positives and sometimes being precise means that the attackers can evade your rules. 
+Also you can't be sure that IDS will detect all the novel attacks as the attackers may execute their attacks in a devious ways.. including, but not limited to obfuscation, flooding, encryption and fragmentation.
+
+There are other cases when you deploy a product that doesn't belong to you. So if a vulnerability announced, sometimes product provider can't instantly create a patch for this vulnerability or guide you with workarounds to mitigate its consequences. In that case, Incident Response Engineer has to write an attack signature for this attack. 
+
+Another issue to consider is Zero-Day exploits -as almost every organization is at risk for zero-day exploits-, here the vulnerability is undisclosed -you don't know what you don't know!- so we are somehow compelled to use IDSs. Protecting against these kind of exploits may require mixing signature-based technique with statistical-based and behavior-based techniques.
+
+Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
+
+So I think that Fixing for sure is better when possible.. it prevents you from the burdens of IDSs.
 
 ---
 
