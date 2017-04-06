@@ -16,6 +16,8 @@
   - [Jenkins-CI Script-Console Java Execution](#jenkins-ci-script-console-java-execution-1)
   - [ElasticSearch Dynamic Script Arbitrary Java Execution (CVE-2014-3120)](#elasticsearch-dynamic-script-arbitrary-java-execution-cve-2014-3120-1)
   - [MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service (CVE-2015-1635)](#ms15-034-http-protocol-stack-request-handling-denial-of-service-cve-2015-1635)
+
+- [Drowning Snort by false positives](#)
   
 - [Is it easier to fix the application than to detect attacks?](#so-is-it-easier-to-fix-the-application-than-to-detect-attacks)
 
@@ -341,6 +343,152 @@ Another issue to consider is Zero-Day exploits -as almost every organization is 
 Not properly configured IDS leads to a lot of false-positives which make security team not taking the alerts seriously. Also even if IDS detects an attack, the odds are that these (i.e. packets) contain spoofed IP addresses and somehow reduce the possibility of finding the actual attackers.
 
 So I think that Fixing for sure is better when possible.. it prevents you from the burdens of IDSs.
+
+---
+
+## **Drowning Snort by false positives**:
+
+In this section, our main goal is to make Snort generate a lot of false positive alarms in order to drown out legitimate alerts (i.e. true positives). Beides overwhelming security team members, you may sneak your actual attack amongst these tons of false positive alerts. Also generating such tremendous traffic may force Snort to drop some packets, so it might not see the attacks. 
+
+Let's get started.. we'll trigger a rule to make Snort generate a false positive alarm without an actual attack going on. First, let's take a look on our rule:
+
+![struts_default_rule](screenshots/False-Positives/struts_default_rule.png)
+
+Using curl to trigger the rule:
+
+![curl_trigger_struts](screenshots/False-Positives/curl_trigger_struts.png)
+
+Snort result show that our rule (i.e. sid:39191) triggered successfully and thankfully the custom rule we wrote before(i.e. sid:777555):
+
+![snort_detect_curl](screenshots/False-Positives/snort_detect_curl.png)
+
+We can embed this command inside a script to generate a huge load of false positive alerts.. but there is a problem:
+
+our real IP is logged.. so that is not a good thing. Well, you can use curl through a VPN (here we've a VPN at port 9666 on localhost):
+
+![curl_proxy](screenshots/False-Positives/curl_proxy.png)
+
+But how about spoofing an IP address? before answering lets briefly discuss what is the difference between TCP & UDP protocols.. among all the differences, what matters is TCP establishes a connection through 3-way handshake(i.e. [->>SYN->>] [<<-SYN/ACK<<-] [->>ACK->>]) before transmitting the actual data whereas UDP doesn't because it is a connectionless protocol. So -normally- "spoofing an IP address" in TCP context is a crazy idea.. imagine sending an envelope to person **A** after changing the sender address, how could you expect **A**'s response to get back to you?.. a basic fact that a machine that recieves an unsolicited (i.e. unexpected) SYN/ACK packet will respond with a RST packet. Let's see an example of this behavior..
+
+In order to spoof an IP address, I scanned my local network passively to find candidates using `netdiscover -p -r 192.168.1.0/24`:
+
+![netdiscover](screenshots/False-Positives/netdiscover.png)
+
+.. then I sent a SYN packet with a spoofed IP (i.e. 192.168.1.15) using scapy:
+
+![wireshark_unexpected_SYN-ACK](screenshots/False-Positives/wireshark_unexpected_SYN-ACK.png)
+
+what happened here is:
+  1. We send packet #621 (SYN) to our target (i.e. 192.168.1.143) from our kali machine (i.e. 192.168.1.*5*) but we changed the source address to another machine (i.e. 192.168.1.*15*) before sending the packet.
+  2. The target machine recieved the SYN packet, so it replied with packet #630 (SYN/ACK) to 192.168.1.*15*.
+  3. The real 192.168.1.*15* recieves the SYN/ACK packet.. and because it didn't actually send packet #621 in the first place(i.e. unsolicited SYN/ACK), so it respond with packet #635 (RST) to our target.
+ 
+that is why we can't achieve a TCP connection with a spoofed IP. Also you may wonder why I scanned for candidate host first to be spoofed instead of using an arbitrary IP (e.g. 192.168.222).. to explain why this is not possible if this IP is not reachable in our network.. let's examine the ARP packets that sent between #621, #630 and #635 packets:
+
+  1. Our target host recieve SYN packet with 192.168.1.15 as source address.. so the target (i.e. 192.168.1.143) sends a broadcast packet #622 to the network using ARP protocol to ask "who has 192.168.1.15?":
+  
+  ![arp_1](screenshots/False-Positives/arp_1.png)
+
+  Note: 
+      - The "*broadcast packet*" is sent to a special MAC address that causes all machines on the network to receive it.
+	  - The machine with the requested IP address will reply with an ARP packet that contains it's MAC address.
+  
+  2. Then 192.168.1.15 replies with an ARP packet #631 with its MAC address (i.e. "192.168.1.15 is at [it's MAC address]"):
+  
+  ![arp_2](screenshots/False-Positives/arp_2.png)
+
+  3. After the target host recieves the MAC address of 192.168.1.15, it sends the SYN-ACK packet #630.
+  4. Then 192.168.1.*15* sends a broadcast packet #632 to the network using ARP protocol to ask "who has 192.168.1.143":
+  
+  ![arp_3](screenshots/False-Positives/arp_3.png)
+  
+  5. Then our target host replies with an ARP packet #633 with its MAC address (i.e. "192.168.1.143 is at [it's MAC address]"):
+  
+  ![arp_4](screenshots/False-Positives/arp_4.png)
+
+Now what if we used unreachable IP as our source address (e.g. 192.168.1.222).. let's see:
+
+![wireshark_lost_SYN](screenshots/False-Positives/wireshark_lost_SYN.png)
+
+what happened is that we sent packet #8610 (SYN) to our target (i.e. 192.168.1.143) from our kali machine (i.e. 192.168.1.*5*) but we changed the source address to another unreachable machine (i.e. 192.168.1.*222*) before sending the packet. If we examined the ARP packets:
+
+![arp_5](screenshots/False-Positives/arp_5.png)
+
+.. we'll find that after the target (i.e. 192.168.1.143) recieved the SYN packet, it'll send a broadcast packet #8611 to the network using ARP protocol.. then nothing happened as the requested IP address (i.e. 192.168.1.*222*) is not directly reachable IP address.. so the data delivery is not possible.
+
+
+### Snort rule (sid:*37526*):
+
+  `alert udp $EXTERNAL_NET any -> $HOME_NET 123 (msg:"SERVER-OTHER NTP arbitrary pidfile and driftfile overwrite attempt"; flow:to_server; content:"pidfile"; fast_pattern:only; metadata:policy balanced-ips drop, policy max-detect-ips drop, policy security-ips drop, service ntp; reference:bugtraq,77278; reference:cve,2015-7703; reference:url,support.ntp.org/bin/view/Main/NtpBug2902; classtype:policy-violation; sid:37526; rev:2;)`
+
+Triggering the rule with a crafted packet using Scapy:
+
+
+![scapy_pidfile](screenshots/False-Positives/scapy_pidfile.png)
+
+Note that we are using UDP.. so it doesn't matter if the spoofed IP is up (i.e. reachable through our network) or not.
+
+Snort result:
+
+![snort_detect_pidfile](screenshots/False-Positives/snort_detect_pidfile.png)
+
+
+### Snort rule (sid:*30882*):
+
+  `alert udp $EXTERNAL_NET any -> $HOME_NET 53 (msg:"MALWARE-CNC Win.Trojan.Rbrute inbound connection"; flow:to_server; dsize:4; content:"|BE BA FE CA|"; fast_pattern:only; metadata:impact_flag red, policy balanced-ips drop, policy security-ips drop; reference:url,www.virustotal.com/en/file/eec964dd018ad0c40ff3d7f3a3938350522119122a0cc9711212950fc06b14a0/analysis/; classtype:trojan-activity; sid:30882; rev:2;)`
+
+Triggering the rule with a crafted packet using Scapy:
+
+![scapy_rbrute](screenshots/False-Positives/scapy_rbrute.png)
+
+Snort result:
+
+![snort_detect_rbrute](screenshots/False-Positives/snort_detect_rbrute.png)
+
+
+### Snort rule (sid:*31136*):
+
+  `alert udp $EXTERNAL_NET any -> $HOME_NET [16464,16465,16470,16471] (msg:"MALWARE-CNC Win.Trojan.ZeroAccess inbound connection"; flow:to_server; dsize:16; content:"|28 94 8D AB|"; depth:4; offset:4; metadata:impact_flag red, policy balanced-ips drop, policy connectivity-ips drop, policy security-ips drop, ruleset community; reference:url,www.virustotal.com/file/50cdd9f6c5629630c8d8a3a4fe7d929d3c6463b2f9407d9a90703047e7db7ff9/analysis/; classtype:trojan-activity; sid:31136; rev:2;)`
+
+Triggering the rule with a crafted packet using Scapy:
+
+![scapy_zeroAccess](screenshots/False-Positives/scapy_zeroAccess.png)
+
+Snort result:
+
+![snort_detect_zeroAccess](screenshots/False-Positives/snort_detect_zeroAccess.png)
+
+### Mixing these three rules together:
+
+our script:
+
+	```python
+	#!/usr/bin/env python
+
+	from scapy.all import *
+
+	packet_ip = IP(dst="192.168.1.143" , src="192.168.1.222")
+
+	udp_1 = UDP(dport=123, sport=123)
+	payload_1 = "pidfile"
+
+	udp_2 = UDP(dport=53, sport=4443)
+	payload_2 = "\xbe\xba\xfe\xca"
+
+	udp_3 = UDP(dport=16464, sport=4444)
+	payload_3 = "\x28\x28\x28\x28\x28\x94\x8d\xab\x28\x28\x28\x28\x28\x28\x28\x28"
+
+	packet_1 = packet_ip/udp_1/payload_1
+	packet_2 = packet_ip/udp_2/payload_2
+	packet_3 = packet_ip/udp_3/payload_3
+
+	packets= [packet_1, packet_2, packet_3]
+
+	send(packets, loop=1)
+	```
+
+.. this script sent 4565 packets in 10 seconds only.. in other words, Snort generated 4565 false positive alerts in this very short period.. also keep in mind that we used 3 rules only.. imagine what will happen if we used a lot of rules!.. you may sneak your actual attack while running this kind of scripts. This explains why the notion of *False Positives* is one of the biggest headaches in *Cybersecurity*.
+
 
 ---
 
