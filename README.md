@@ -460,9 +460,9 @@ Snort result:
 
 ![snort_detect_zeroAccess](screenshots/False-Positives/snort_detect_zeroAccess.png)
 
-### Combining these three packets together:
+### Combining these three packets together in one script:
 
-Write this script to execute send the packets our script:
+I wrote this script as an example of how to automate this attack:
 
 ```python
 #!/usr/bin/env python
@@ -490,6 +490,17 @@ send(packets, loop=1)
 ```
 
 .. this script sent 4565 packets in 10 seconds only.. in other words, Snort generated 4565 false positive alerts in this very short period.. also keep in mind that we used 3 rules only.. imagine what will happen if we used a lot of rules!.. you may sneak your actual attack while running this kind of scripts. This explains why the notion of *False Positives* is one of the biggest headaches in *Cybersecurity*.
+
+Screenshot from Snort:
+
+![snort_false_positives](screenshots/False-Positives/snort_false_positives.png)
+
+Note that Snort dropped large percentage of packets (i.e. 33%):
+
+![snort_drop](screenshots/False-Positives/snort_drop.png)
+
+.. so not only we can sneak our actual attack, but also we have a probabilty to not to be caught by Snort at all. 
+
 
 ---
 
