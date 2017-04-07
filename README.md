@@ -333,7 +333,7 @@ Although I managed to trigger the rules with *wget*(i.e. `wget --header "Range: 
 
 ## **Drowning Snort by false positives**:
 
-In this section, our main goal is to make Snort generate a lot of false positive alarms in order to drown out legitimate alerts (i.e. true positives). Beides overwhelming security team members, you may sneak your actual attack amongst these tons of false positive alerts. Also generating such tremendous traffic may force Snort to drop some packets, so it might not see the attacks. 
+In this section, our main goal is to make Snort generate a lot of false positive alarms in order to drown out legitimate alerts (i.e. true positives). Beides overwhelming security team members, you may sneak your actual attack amongst these tons of false positive alerts(i.e. bogus alerts will drown out the actual alerts). Most importantly, generating such tremendous traffic may force Snort to drop some packets, which may lead to the actual attack go undetected. 
 
 Let's get started.. we'll trigger a rule to make Snort generate a false positive alarm without an actual attack going on. First, let's take a look on our rule:
 
