@@ -282,7 +282,7 @@ with this option being set, our packet may looks like these three random permuta
 
 ![3_packet_permutations_example](screenshots/ElasticSearch_2/3_packet_permutations_example.png)
 
-Now if we run the module, Snort has a probability of 0.0625 to caught us (i.e. 1/16, as our method is the four-charachters method POST so the available permutaions is 2^4).
+Now if we run the module, Snort has a probability of 0.0625 to caught us (i.e. 1/16, as our method is the four-charachters method POST so the available permutaions is 2^4)(2 -> every character have on of two states: uppercase or lowercase, 4 -> "POST" is four characters).
 
 I tried to execute the module and luckily snort didn't complain about it:
 
